@@ -74,6 +74,13 @@
         android:summary="@string/vbmeta_attestation_summary"
         android:defaultValue="true" />
 
+    <!-- Ignore windows secure flag -->
+        <com.voltage.support.preferences.SecureSettingSwitchPreference
+            android:key="window_ignore_secure"
+            android:title="@string/ignore_window_secure_title"
+            android:summary="@string/ignore_window_secure_summary"
+            android:defaultValue="false" />
+
     </PreferenceCategory>
 
     <PreferenceCategory
