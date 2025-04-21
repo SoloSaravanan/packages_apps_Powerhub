@@ -339,6 +339,12 @@
                     layout="@layout/row_spoof_switch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
+
+                <include
+                    android:id="@+id/row_window_ignore_secure"
+                    layout="@layout/row_spoof_switch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
             </LinearLayout>
         </LinearLayout>
 

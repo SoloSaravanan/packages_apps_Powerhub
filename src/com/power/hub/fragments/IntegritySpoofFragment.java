@@ -17,11 +17,14 @@
 package com.power.hub.fragments;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.UserHandle;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -59,6 +62,7 @@ import java.util.Map;
 public class IntegritySpoofFragment extends Fragment {
 
     private static final String TAG = "IntegritySpoof";
+    private static final String SETTING_WINDOW_IGNORE_SECURE = "window_ignore_secure";
 
     private static final String REQ_FETCH_SOURCE = "spoof_integrity_fetch_source";
     private static final String REQ_DEVICE = "spoof_integrity_device";
@@ -579,6 +583,13 @@ public class IntegritySpoofFragment extends Fragment {
                 R.string.pif_spoof_vending_build_summary,
                 mPifManager.isSpoofVendingBuildEnabled(), hasProfile,
                 mPifManager::setSpoofVendingBuild);
+        ContentResolver resolver = requireContext().getContentResolver();
+        bindSwitch(view.findViewById(R.id.row_window_ignore_secure),
+                R.string.ignore_window_secure_title, R.string.ignore_window_secure_summary,
+                Settings.Secure.getIntForUser(resolver, SETTING_WINDOW_IGNORE_SECURE, 0,
+                        UserHandle.USER_CURRENT) != 0,
+                true, enabled -> Settings.Secure.putIntForUser(resolver,
+                        SETTING_WINDOW_IGNORE_SECURE, enabled ? 1 : 0, UserHandle.USER_CURRENT));
         bindSwitch(view.findViewById(R.id.row_provider), R.string.pif_spoof_provider_title,
                 R.string.pif_spoof_provider_summary,
                 mPifManager.isSpoofProviderEnabled(), hasProfile,
