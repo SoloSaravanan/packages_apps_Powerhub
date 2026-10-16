@@ -44,7 +44,7 @@
         android:summary="@string/ignore_window_secure_summary"
         android:defaultValue="false" />
 
-    <com.voltage.support.preferences.SecureSettingSwitchPreference
+    <com.voltage.support.preferences.GlobalSettingSwitchPreference
         android:key="hide_screen_capture_status"
         android:title="@string/hide_screen_capture_status_title"
         android:summary="@string/hide_screen_capture_status_summary"
