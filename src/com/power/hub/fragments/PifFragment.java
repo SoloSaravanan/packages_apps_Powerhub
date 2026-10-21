@@ -20,6 +20,8 @@ import android.app.Activity;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Toast;
@@ -31,7 +33,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceCategory;
-import androidx.preference.SwitchPreferenceCompat;
 
 import com.android.internal.logging.nano.MetricsProto;
 import com.android.settings.R;
@@ -47,6 +48,7 @@ import java.util.Map;
 public class PifFragment extends SettingsPreferenceFragment {
 
     private static final String TAG = "PifFragment";
+    private static final long RESTART_DELAY_MS = 500L;
 
     private static final String KEY_ACTIVE_CONFIG = "pif_active_config";
     private static final String KEY_FETCH_BETA = "pif_fetch_beta";
@@ -54,6 +56,10 @@ public class PifFragment extends SettingsPreferenceFragment {
     private static final String KEY_IMPORT_FILE = "pif_import_file";
     private static final String KEY_SHOW_PROPS = "pif_show_props";
     private static final String KEY_SPOOF_PHOTOS = "spoof_pif_photos";
+    private static final String KEY_SPOOF_PROPS = "pif_spoof_props";
+    private static final String KEY_SPOOF_PROVIDER = "pif_spoof_provider";
+    private static final String KEY_SPOOF_SIGNATURE = "pif_spoof_signature";
+    private static final String KEY_SPOOF_VENDING_BUILD = "pif_spoof_vending_build";
     private static final String KEY_OPTIONS_CATEGORY = "pif_options_category";
 
     private PifManager mPifManager;
@@ -64,7 +70,6 @@ public class PifFragment extends SettingsPreferenceFragment {
     private Preference mFetchVoltagePreference;
     private Preference mImportPreference;
     private Preference mShowPropsPreference;
-    private SwitchPreferenceCompat mSpoofPhotosPreference;
     private PreferenceCategory mOptionsCategory;
     private String mImportTargetFileName;
 
@@ -96,8 +101,13 @@ public class PifFragment extends SettingsPreferenceFragment {
         mFetchVoltagePreference = findPreference(KEY_FETCH_VOLTAGE);
         mImportPreference = findPreference(KEY_IMPORT_FILE);
         mShowPropsPreference = findPreference(KEY_SHOW_PROPS);
-        mSpoofPhotosPreference = findPreference(KEY_SPOOF_PHOTOS);
         mOptionsCategory = findPreference(KEY_OPTIONS_CATEGORY);
+
+        setPifOptionChangeListener(KEY_SPOOF_PHOTOS);
+        setPifOptionChangeListener(KEY_SPOOF_PROPS);
+        setPifOptionChangeListener(KEY_SPOOF_PROVIDER);
+        setPifOptionChangeListener(KEY_SPOOF_SIGNATURE);
+        setPifOptionChangeListener(KEY_SPOOF_VENDING_BUILD);
 
         mStatusPreference.setOnPreferenceClickListener(preference -> {
             handleActiveConfigClick();
@@ -143,12 +153,35 @@ public class PifFragment extends SettingsPreferenceFragment {
         if (mOptionsCategory != null) {
             mOptionsCategory.setVisible(true);
         }
-        if (mSpoofPhotosPreference != null) {
-            mSpoofPhotosPreference.setOnPreferenceChangeListener((preference, newValue) -> {
-                mPifManager.setSpoofPhotos((Boolean) newValue);
-                return true;
-            });
+    }
+
+    private void setPifOptionChangeListener(@NonNull String key) {
+        Preference option = findPreference(key);
+        if (option == null) {
+            return;
         }
+        option.setOnPreferenceChangeListener((preference, newValue) -> {
+            final boolean includePhotos;
+            switch (key) {
+                case KEY_SPOOF_PHOTOS:
+                    includePhotos = true;
+                    break;
+                case KEY_SPOOF_PROPS:
+                case KEY_SPOOF_PROVIDER:
+                case KEY_SPOOF_SIGNATURE:
+                case KEY_SPOOF_VENDING_BUILD:
+                    includePhotos = false;
+                    break;
+                default:
+                    return false;
+            }
+            // The preference is persisted only after this listener returns, so
+            // restart targets after the new Secure setting has been written.
+            new Handler(Looper.getMainLooper()).postDelayed(
+                    () -> mPifManager.restartTargetPackages(includePhotos),
+                    RESTART_DELAY_MS);
+            return true;
+        });
     }
 
     private String buildActiveConfigSummary(@NonNull Map<String, String> props) {

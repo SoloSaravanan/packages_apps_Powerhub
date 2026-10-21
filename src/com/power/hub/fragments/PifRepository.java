@@ -166,11 +166,49 @@ public class PifRepository {
             pifJson.put("DEVICE", device);
             pifJson.put("FINGERPRINT", fingerprint);
             pifJson.put("SECURITY_PATCH", securityPatch);
-            pifJson.put("DEVICE_INITIAL_SDK_INT", "32");
+            pifJson.put("DEVICE_INITIAL_SDK_INT", initialSdkIntForDevice(device));
+            pifJson.put("spoofBuild", "true");
+            pifJson.put("spoofVendingSdk", "false");
             return new PifResult.Success(model, pifJson);
         } catch (Exception e) {
             Log.e(TAG, "Failed fetching canary PIF", e);
             return new PifResult.Error("Failed to fetch canary PIF: " + e.getMessage(), e);
+        }
+    }
+
+    private static String initialSdkIntForDevice(String device) {
+        switch (device) {
+            case "bluejay":
+                return "32";
+            case "panther":
+            case "cheetah":
+            case "lynx":
+            case "felix":
+            case "tangorpro":
+                return "33";
+            case "shiba":
+            case "husky":
+            case "akita":
+            case "tokay":
+            case "caiman":
+            case "komodo":
+            case "comet":
+                return "34";
+            case "tegu":
+            case "stallion":
+                return "35";
+            case "frankel":
+            case "blazer":
+            case "mustang":
+            case "rango":
+                return "36";
+            case "cubs":
+            case "grizzly":
+            case "kodiak":
+            case "yogi":
+                return "37";
+            default:
+                return "37";
         }
     }
 
@@ -199,7 +237,7 @@ public class PifRepository {
     private Integer extractLatestVersion(String html) {
         Integer latest = null;
         Matcher matcher = Pattern.compile(
-                "https://developer\\.android\\.com/about/versions/(\\d+)")
+                "(?:https://developer\\.android\\.com)?/about/versions/(\\d+)")
                 .matcher(html);
         while (matcher.find()) {
             int version = Integer.parseInt(matcher.group(1));

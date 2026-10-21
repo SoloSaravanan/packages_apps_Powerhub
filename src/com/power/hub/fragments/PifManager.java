@@ -50,7 +50,14 @@ public class PifManager {
     private static final String VENDING_BUILD_SPOOF_SECURE_KEY = "pif_spoof_vending_build";
 
     private static final java.util.Set<String> BOOLEAN_FLAG_KEYS = new java.util.HashSet<>(
-            Arrays.asList("spoofProps", "spoofProvider", "spoofSignature", "spoofVendingBuild"));
+            Arrays.asList(
+                    "spoofPhotos",
+                    "spoofProps",
+                    "spoofProvider",
+                    "spoofSignature",
+                    "spoofVendingBuild"));
+    private static final List<String> PRESERVED_PROFILE_OPTION_KEYS = Arrays.asList(
+            "spoofBuild", "spoofVendingSdk", "DEBUG", "verboseLogs");
 
     private static final List<String> LEGACY_CONFIG_FILES = Arrays.asList(
             "custom.pif.prop",
@@ -104,21 +111,26 @@ public class PifManager {
         if (props.isEmpty()) {
             throw new IllegalArgumentException("Config contains no readable properties");
         }
+        preserveExistingProfileOptions(props);
 
         writeStoredConfig(props);
-        killPackage(VENDING_PKG);
+        restartTargetPackages(false);
         Log.i(TAG, "Imported PIF config into Settings.Secure");
         return PIF_CONFIG_NAME;
     }
 
     public void writeJsonConfig(String fileName, JSONObject pifData) throws Exception {
-        writeStoredConfig(jsonToMap(pifData));
-        killPackage(VENDING_PKG);
+        Map<String, String> props = jsonToMap(pifData);
+        preserveExistingProfileOptions(props);
+        writeStoredConfig(props);
+        restartTargetPackages(false);
     }
 
     public String writeAutoSelectedJsonConfig(JSONObject pifData) throws Exception {
-        writeStoredConfig(jsonToMap(pifData));
-        killPackage(VENDING_PKG);
+        Map<String, String> props = jsonToMap(pifData);
+        preserveExistingProfileOptions(props);
+        writeStoredConfig(props);
+        restartTargetPackages(false);
         Log.i(TAG, "Applied generated PIF config into Settings.Secure");
         return PIF_CONFIG_NAME;
     }
@@ -128,7 +140,7 @@ public class PifManager {
             return;
         }
         Settings.Secure.putString(mContext.getContentResolver(), PIF_CONFIG_KEY, null);
-        killPackage(VENDING_PKG);
+        restartTargetPackages(true);
     }
 
     public boolean isSpoofPhotosEnabled() {
@@ -140,7 +152,7 @@ public class PifManager {
     public void setSpoofPhotos(boolean enabled) {
         Settings.Secure.putString(mContext.getContentResolver(), PHOTOS_SPOOF_SECURE_KEY,
                 String.valueOf(enabled));
-        killPackage(PHOTOS_PKG);
+        restartTargetPackages(true);
     }
 
     public boolean isSpoofPropsEnabled() {
@@ -151,18 +163,18 @@ public class PifManager {
     public void setSpoofProps(boolean enabled) {
         Settings.Secure.putString(mContext.getContentResolver(), PROPS_SPOOF_SECURE_KEY,
                 String.valueOf(enabled));
-        killPackage(GMS_PKG);
+        restartTargetPackages(false);
     }
 
     public boolean isSpoofProviderEnabled() {
         String val = Settings.Secure.getString(mContext.getContentResolver(), PROVIDER_SPOOF_SECURE_KEY);
-        return val == null || isTruthy(val);
+        return val != null && isTruthy(val);
     }
 
     public void setSpoofProvider(boolean enabled) {
         Settings.Secure.putString(mContext.getContentResolver(), PROVIDER_SPOOF_SECURE_KEY,
                 String.valueOf(enabled));
-        killPackage(GMS_PKG);
+        restartTargetPackages(false);
     }
 
     public boolean isSpoofSignatureEnabled() {
@@ -173,7 +185,7 @@ public class PifManager {
     public void setSpoofSignature(boolean enabled) {
         Settings.Secure.putString(mContext.getContentResolver(), SIGNATURE_SPOOF_SECURE_KEY,
                 String.valueOf(enabled));
-        killPackage(GMS_PKG);
+        restartTargetPackages(false);
     }
 
     public boolean isSpoofVendingBuildEnabled() {
@@ -184,7 +196,7 @@ public class PifManager {
     public void setSpoofVendingBuild(boolean enabled) {
         Settings.Secure.putString(mContext.getContentResolver(), VENDING_BUILD_SPOOF_SECURE_KEY,
                 String.valueOf(enabled));
-        killPackage(VENDING_PKG);
+        restartTargetPackages(false);
     }
 
     public static boolean looksLikeJson(String fileName, String content) {
@@ -247,6 +259,15 @@ public class PifManager {
             props.put(key, value == null ? "" : String.valueOf(value));
         }
         return props;
+    }
+
+    private void preserveExistingProfileOptions(Map<String, String> updatedProps) {
+        Map<String, String> existingProps = getCurrentProperties();
+        for (String key : PRESERVED_PROFILE_OPTION_KEYS) {
+            if (existingProps.containsKey(key)) {
+                updatedProps.put(key, existingProps.get(key));
+            }
+        }
     }
 
     private Map<String, String> parseStoredConfig(String content) {
@@ -339,6 +360,14 @@ public class PifManager {
 
     private boolean isTruthy(String value) {
         return "1".equals(value) || "true".equalsIgnoreCase(value);
+    }
+
+    public void restartTargetPackages(boolean includePhotos) {
+        killPackage(GMS_PKG);
+        killPackage(VENDING_PKG);
+        if (includePhotos) {
+            killPackage(PHOTOS_PKG);
+        }
     }
 
     private void killPackage(String packageName) {
