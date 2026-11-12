@@ -63,6 +63,7 @@ public class IntegritySpoofFragment extends Fragment {
 
     private static final String TAG = "IntegritySpoof";
     private static final String SETTING_WINDOW_IGNORE_SECURE = "window_ignore_secure";
+    private static final String SETTING_HIDE_SCREEN_CAPTURE_STATUS = "hide_screen_capture_status";
 
     private static final String REQ_FETCH_SOURCE = "spoof_integrity_fetch_source";
     private static final String REQ_DEVICE = "spoof_integrity_device";
@@ -590,6 +591,12 @@ public class IntegritySpoofFragment extends Fragment {
                         UserHandle.USER_CURRENT) != 0,
                 true, enabled -> Settings.Secure.putIntForUser(resolver,
                         SETTING_WINDOW_IGNORE_SECURE, enabled ? 1 : 0, UserHandle.USER_CURRENT));
+        bindSwitch(view.findViewById(R.id.row_hide_screen_capture_status),
+                R.string.hide_screen_capture_status_title,
+                R.string.hide_screen_capture_status_summary,
+                Settings.Global.getInt(resolver, SETTING_HIDE_SCREEN_CAPTURE_STATUS, 0) != 0,
+                true, enabled -> Settings.Global.putInt(resolver,
+                        SETTING_HIDE_SCREEN_CAPTURE_STATUS, enabled ? 1 : 0));
         bindSwitch(view.findViewById(R.id.row_provider), R.string.pif_spoof_provider_title,
                 R.string.pif_spoof_provider_summary,
                 mPifManager.isSpoofProviderEnabled(), hasProfile,
